@@ -1,41 +1,25 @@
 import os
 import argparse
 import random
-import PIL
 import torchvision
 import torch
 import warnings
 import time
-import numpy as np
 import torch.nn as nn
 import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 from PIL import Image
-from datetime import datetime
 from scripts.demo.turbo import *
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
 # from inference import init_detector, inference_detector
-from utils import chunk, IoU, get_rand
+from utils import chunk, get_rand
 from seg_module import Segmodule
+from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
-
-
-def load_img(path):
-    image = Image.open(path).convert("RGB")
-    w, h = image.size
-    print(h, w)
-    print(f"loaded input image of size ({w}, {h}) from {path}")
-    # resize to integer multiple of 32
-    w, h = map(lambda x: x - x % 32, (w, h))
-    image = image.resize((w, h), resample=PIL.Image.LANCZOS)
-    image = np.array(image).astype(np.float32) / 255.0
-    image = image[None].transpose(0, 3, 1, 2)
-    image = torch.from_numpy(image)
-    return 2.*image - 1.
 
 
 def load_classes(args):
@@ -57,24 +41,20 @@ def load_classes(args):
         class_total.append(line.split(",")[0])
     class_train = class_total[:15]
     class_test = class_total[15:]
-    if args.data_mode == 1:
-        class_train = class_total[:15]
-    elif args.data_mode == 2:
-        class_train = class_total[15:]
-    return class_train, class_coco
+    
+    return class_train, class_test, class_coco
 
 
 def main(args):
     
     seed_everything(args.seed)
 
-    class_train, class_coco = load_classes(args)
+    class_train, class_test, class_coco = load_classes(args)
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     
     config_file = 'src/mmdetection/configs/swin/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco.py'
     checkpoint_file = 'checkpoints/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco_20210903_104808-b92c91f1.pth'
-    
     pretrain_detector = init_detector(config_file, checkpoint_file, device=device)
     
     seg_module = Segmodule().to(device)
@@ -101,14 +81,10 @@ def main(args):
     # out = sample(model, sampler, H=512, W=512, seed=args.seed, prompt=prompt, filter=state.get("filter"))
     # Image.fromarray(out[0]).save(f'{prompt}.png')
 
-    current_time = datetime.now().strftime('%b%d_%H-%M-%S')
-    save_dir = 'outputs/exps/'
-    os.makedirs(save_dir, exist_ok=True)
-    ckpt_dir = os.path.join(save_dir, 'ckpts-'+current_time)
-    os.makedirs(ckpt_dir, exist_ok=True)
-    
-    writer = SummaryWriter(log_dir=os.path.join(ckpt_dir, 'logs'))
-    os.makedirs(os.path.join(ckpt_dir, 'training'), exist_ok=True)
+    os.makedirs(args.exp_dir, exist_ok=True)
+    dir_path = os.path.join(args.exp_dir, 'training')
+    os.makedirs(dir_path, exist_ok=True)
+    writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     batch_size = args.n_samples
     learning_rate = 1e-5
@@ -132,9 +108,7 @@ def main(args):
     batch_size = args.n_samples
     assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
 
-    # iou = 0
-    t1 = time.time() 
-    for j in range(total_iter):
+    for j in range(1, total_iter+1):
         print('Iter ' + str(j) + '/' + str(total_iter))
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
@@ -209,12 +183,11 @@ def main(args):
                     # iou += IoU(annotation_pred_gt, annotation_pred)
                     # print('iou', IoU(annotation_pred_gt, annotation_pred))
                     viz_tensor2 = torch.cat([annotation_pred_gt, annotation_pred], axis=1)
-                    if  j % 100 ==0:
-                        dir_path = os.path.join(ckpt_dir, 'training/'+ str(b_index))
+                    if  j % 200 == 0:
                         torchvision.utils.save_image(viz_tensor2, 
-                            dir_path +'viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
+                            dir_path +'/viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
                             normalize=True, scale_each=True)
-                        Image.fromarray(out[0]).save(f'{dir_path + prompts[0]}.png')
+                        Image.fromarray(out[0]).save(f'{dir_path}/{prompts[0]}.png')
                         
             if len(loss) > 0:
                 total_loss = 0
@@ -229,19 +202,12 @@ def main(args):
                 print("Training step: {0:05d}/{1:05d}, loss: {2:0.4f}".format(j, total_iter, total_loss))
         
         # save checkpoint
-        if j % 200 == 0 and j != 0:
-            print("Saving latest checkpoint to",ckpt_dir)
-            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
-        if j % 5000 == 0  and j != 0:
-            print("Saving latest checkpoint to",ckpt_dir)
-            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
+        if j % 200 == 0:
+            torch.save(seg_module.state_dict(), os.path.join(args.exp_dir, 'checkpoint_latest.pth'))
+        if j % 1000 == 0:
+            torch.save(seg_module.state_dict(), os.path.join(args.exp_dir, 'checkpoint_'+str(j)+'.pth'))
     
-    t2 = time.time()
-    t = t2 - t1
-    print(f"Time: {t//3600}h {t%3600//60}min")
-    # print(iou/total_epoch)
-    # with open('tmp/ious.txt', "a") as f:
-    #     f.write(str(iou/total_epoch)+'\n')
+    evaluate(pretrain_detector, seg_module, (model, sampler), class_train, class_test, dir_path)
 
 
 if __name__ == "__main__":
@@ -321,17 +287,11 @@ if __name__ == "__main__":
         default=1
     )
     parser.add_argument(
-        "--train_data",
+        "--exp_dir",
         type=str,
-        help="the type of training data: single, two, random",
-        default="single"
-    )
-    parser.add_argument(
-        "--data_mode",
-        type=int,
-        default=1,
-        help="which data split",
+        help="path to where to save training things",
+        required=True
     )
 
-    opt = parser.parse_args()
-    main(opt)
+    args = parser.parse_args()
+    main(args)

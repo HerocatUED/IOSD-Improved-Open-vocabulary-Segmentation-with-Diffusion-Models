@@ -14,6 +14,7 @@ TODO List：
 - [ ] Check training classes, remove those mmdet can't segment
 - [ ] Build prompts, not always "a photography of ..." 
 - [ ] Batch Size Problem
+- [ ] use uc
 - [ ] Optional: Try segment a given image rather than segment generated images. 
 
 ## Requirements

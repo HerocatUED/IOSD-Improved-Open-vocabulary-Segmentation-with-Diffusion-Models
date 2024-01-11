@@ -1,5 +1,6 @@
 import cv2
 import torch
+import PIL
 import numpy as np
 from itertools import islice
 from PIL import Image
@@ -109,3 +110,17 @@ class VOCColorize(object):
             color_image[2][mask] = self.cmap[label][2]
 
         return color_image
+    
+    
+def load_img(path):
+    image = Image.open(path).convert("RGB")
+    w, h = image.size
+    print(h, w)
+    print(f"loaded input image of size ({w}, {h}) from {path}")
+    # resize to integer multiple of 32
+    w, h = map(lambda x: x - x % 32, (w, h))
+    image = image.resize((w, h), resample=PIL.Image.LANCZOS)
+    image = np.array(image).astype(np.float32) / 255.0
+    image = image[None].transpose(0, 3, 1, 2)
+    image = torch.from_numpy(image)
+    return 2.*image - 1.

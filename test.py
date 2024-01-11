@@ -1,13 +1,10 @@
 import argparse
 import os
-import cv2
 import torch
 import torchvision
 import numpy as np
 
 from PIL import Image
-from torch import autocast
-from contextlib import nullcontext
 from einops import rearrange
 from pytorch_lightning import seed_everything
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
