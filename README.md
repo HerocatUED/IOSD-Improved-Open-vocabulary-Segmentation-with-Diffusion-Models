@@ -28,6 +28,10 @@ TODO List：
 Put these models under `checkpoint` folder
 https://drive.google.com/drive/folders/1HlagN6jVhmC_UbrOAy133LkN4Qgf2Scv?usp=sharing
 
+## Demo
+After you have your seg_model, you can run a real-time web UI with following command:
+```HF_ENDPOINT=https://hf-mirror.com python demo.py --ckpt $path to seg_model$```
+
 ## Train & Inference
 Before training, please download the [checkpoint](https://drive.google.com/file/d/1JbJ7tWB15DzCB9pfLKnUHglckumOdUio/view) of the off-the-shelf detector into a folder called `checkpoint/`. 
 

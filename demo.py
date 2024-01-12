@@ -13,7 +13,7 @@ def demo(args):
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     seg_module = Segmodule().to(device)
-    seg_module.load_state_dict(torch.load(args.grounding_ckpt, map_location="cpu"), strict=True)
+    seg_module.load_state_dict(torch.load(args.ckpt, map_location="cpu"), strict=True)
     
     head_cols = st.columns([1, 1, 1])
     with head_cols[0]:
@@ -109,7 +109,7 @@ if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
     parser.add_argument(
-        "--grounding_ckpt",
+        "--ckpt",
         type=str,
         default="grounding_module.pth",
         help="path to checkpoint of grounding module",
