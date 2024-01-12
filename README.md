@@ -18,6 +18,7 @@ TODO List：
 - [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. 
 - [ ] Optional: Try Stable Video Diffusion via video segmentation
+- [ ] Experiments
 
 ## Requirements
 1. Install [pytorch](https://pytorch.org/) (we use 2.1.1 with cuda 11.8)
