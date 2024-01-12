@@ -11,18 +11,17 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
              class_seen, class_unseen, exp_dir:str, 
              eval_iter:int = 1000, H:int = 512, W:int = 512):
     
-    model, sampler = diffusion_model
+    model, sampler, state = diffusion_model
 
     print('***********************   begin   **********************************')
     print(f"Start evaluate with maximum {eval_iter} iterations.")
 
     batch_size = 1
     assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
-
-    iou = 0
     
     with torch.no_grad():
         for v, classes in enumerate([class_seen, class_unseen]):
+            iou = 0
             for j in range(eval_iter):
                 
                 print('Iter ' + str(j) + '/' + str(eval_iter))

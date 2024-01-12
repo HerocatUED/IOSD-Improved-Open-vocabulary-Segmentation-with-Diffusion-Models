@@ -1,5 +1,5 @@
 # if huggingface is not accessible
-HF_ENDPOINT=https://hf-mirror.com python train.py --exp_dir seg_2
+CUDA_VISIBLE_DEVICES="3" HF_ENDPOINT=https://hf-mirror.com python train.py --exp_dir outputs/exps/diffusion
 
 CUDA_VISIBLE_DEVICES="2" \
 HF_ENDPOINT=https://hf-mirror.com python test.py \

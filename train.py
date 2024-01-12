@@ -4,7 +4,6 @@ import random
 import torchvision
 import torch
 import warnings
-import time
 import torch.nn as nn
 import torch.optim as optim
 
@@ -52,14 +51,11 @@ def main(args):
     class_train, class_test, class_coco = load_classes(args)
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
-    
     config_file = 'src/mmdetection/configs/swin/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco.py'
     checkpoint_file = 'checkpoints/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco_20210903_104808-b92c91f1.pth'
     pretrain_detector = init_detector(config_file, checkpoint_file, device=device)
     
     seg_module = Segmodule().to(device)
-    # state_dic = torch.load('../checkpoint/grounding_module.pth')
-    # seg_module.load_state_dict(state_dic)
 
     version_dict = VERSION2SPECS["SDXL-Turbo"]
     state = init_st(version_dict, load_filter=True)
@@ -82,13 +78,15 @@ def main(args):
     # Image.fromarray(out[0]).save(f'{prompt}.png')
 
     os.makedirs(args.exp_dir, exist_ok=True)
-    dir_path = os.path.join(args.exp_dir, 'training')
-    os.makedirs(dir_path, exist_ok=True)
+    img_dir = os.path.join(args.exp_dir, 'imgs')
+    os.makedirs(img_dir, exist_ok=True)
+    ckpt_dir = os.path.join(args.exp_dir, 'ckpts')
+    os.makedirs(ckpt_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     batch_size = args.n_samples
     learning_rate = 1e-5
-    total_iter = 10000
+    total_iter = 15000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
@@ -185,9 +183,9 @@ def main(args):
                     viz_tensor2 = torch.cat([annotation_pred_gt, annotation_pred], axis=1)
                     if  j % 200 == 0:
                         torchvision.utils.save_image(viz_tensor2, 
-                            dir_path +'/viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
+                            img_dir +'/viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
                             normalize=True, scale_each=True)
-                        Image.fromarray(out[0]).save(f'{dir_path}/{prompts[0]}.png')
+                        Image.fromarray(out[0]).save(f'{img_dir}/{prompts[0]}.png')
                         
             if len(loss) > 0:
                 total_loss = 0
@@ -203,11 +201,11 @@ def main(args):
         
         # save checkpoint
         if j % 200 == 0:
-            torch.save(seg_module.state_dict(), os.path.join(args.exp_dir, 'checkpoint_latest.pth'))
+            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
         if j % 1000 == 0:
-            torch.save(seg_module.state_dict(), os.path.join(args.exp_dir, 'checkpoint_'+str(j)+'.pth'))
+            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
     
-    evaluate(pretrain_detector, seg_module, (model, sampler), class_train, class_test, dir_path)
+    evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, args.exp_dir)
 
 
 if __name__ == "__main__":
@@ -218,19 +216,6 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="number of sampling steps",
-    )
-    parser.add_argument(
-        "--n_iter",
-        type=int,
-        default=1,
-        help="sample this often",
-    )
-    parser.add_argument(
-        "--f",
-        type=int,
-        default=8,
-        help="downsampling factor, most often 8 or 16",
-        # NOTE: only 8, modify in turbo.sample line 104
     )
     parser.add_argument(
         "--n_samples",
@@ -256,29 +241,10 @@ if __name__ == "__main__":
         help="image width, in pixel space",
     )
     parser.add_argument(
-        "--C",
-        type=int,
-        default=8,
-        help="latent channels",
-        # NOTE: only 8, modify in turbo.sample line 105
-    )
-    parser.add_argument(
-        "--ckpt",
-        type=str,
-        default="checkpoint/stable_diffusion.ckpt",
-        help="path to checkpoint of stable-diffusion-v1 model",
-    )
-    parser.add_argument(
         "--seed",
         type=int,
-        default=42,
+        default=13146,
         help="the seed (for reproducible sampling)",
-    )
-    parser.add_argument(
-        "--save_name",
-        type=str,
-        help="the save dir name",
-        default="exp"
     )
     parser.add_argument(
         "--class_split",
