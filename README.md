@@ -14,8 +14,10 @@ TODO List：
 - [ ] Check training classes, remove those mmdet can't segment
 - [ ] Build prompts, not always "a photography of ..." 
 - [ ] Batch Size Problem
-- [ ] use uc
+- [ ] Explore uc to seg_module
+- [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. 
+- [ ] Optional: Try Stable Video Diffusion via video segmentation
 
 ## Requirements
 1. Install [pytorch](https://pytorch.org/) (we use 2.1.1 with cuda 11.8)
