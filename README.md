@@ -27,15 +27,17 @@ TODO List：
 3. Make sure you have access to hugging face (If not, just put ```HF_ENDPOINT=https://hf-mirror.com``` before all commands bellow)
 
 ## Model Zoo
-Put these models under `checkpoint` folder
-https://drive.google.com/drive/folders/1HlagN6jVhmC_UbrOAy133LkN4Qgf2Scv?usp=sharing
+Put these models under `checkpoint` folder:
+1. [diffusion model(sd_xl_turbo_1.0_fp16.safetensors)](https://huggingface.co/stabilityai/sdxl-turbo/tree/main)
+2. [detection model]()
+3. [segmentation module]()
 
 ## Demo
 After you have your seg_model, you can run a real-time web UI with following command:
-```HF_ENDPOINT=https://hf-mirror.com python demo.py --ckpt $path to seg_model$```
+```streamlit run demo.py```
 
 ## Train & Inference
-Before training, please download the [checkpoint](https://drive.google.com/file/d/1JbJ7tWB15DzCB9pfLKnUHglckumOdUio/view) of the off-the-shelf detector into a folder called `checkpoint/`. 
+Before training, please download the diffusion model and detection model into a folder called `checkpoint`. 
 
 See *command.txt*
 	

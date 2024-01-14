@@ -1,8 +1,13 @@
 # if huggingface is not accessible
-CUDA_VISIBLE_DEVICES="3" HF_ENDPOINT=https://hf-mirror.com python train.py --exp_dir outputs/exps/diffusion
+CUDA_VISIBLE_DEVICES="3" \
+HF_ENDPOINT=https://hf-mirror.com python train.py \
+--exp_dir outputs/exps/diffusion
 
 CUDA_VISIBLE_DEVICES="2" \
 HF_ENDPOINT=https://hf-mirror.com python test.py \
 --grounding_ckpt 'outputs/exps/ckpts-Jan09_22-53-12/checkpoint_latest.pth' \
 --prompt "a photograph of pikachu" \
 --category "pikachu"
+
+CUDA_VISIBLE_DEVICES="2" \
+HF_ENDPOINT=https://hf-mirror.com streamlit run demo.py 

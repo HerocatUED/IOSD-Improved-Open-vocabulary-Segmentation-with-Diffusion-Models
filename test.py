@@ -63,12 +63,12 @@ def main(args):
         for prompts in data:
 
             # generate images
-            # seed = args.seed
             seed = get_rand()
             out = sample(
                 model, sampler, H=args.H, W=args.W, seed=seed, 
                 prompt=prompts[0], filter=state.get("filter")
             )
+            diffusion_features = copy.copy(get_feature_dic())
             img = out[0]
             Image.fromarray(img).save(f"{sample_path}/{args.prompt}.png")
 
@@ -83,7 +83,6 @@ def main(args):
             class_embedding = class_embedding.repeat(batch_size, 1, 1)
 
             # seg_module
-            diffusion_features = get_feature_dic()
             total_pred_seg = seg_module(diffusion_features, class_embedding)
 
             pred_seg = total_pred_seg[0]

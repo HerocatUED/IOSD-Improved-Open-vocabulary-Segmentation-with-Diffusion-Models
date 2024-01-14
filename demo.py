@@ -1,19 +1,20 @@
 import argparse
 import torch
+import copy
 import numpy as np
 
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from scripts.demo.turbo import *
 from utils import plot_mask
-from seg_module import Segmodule
+from seg_module_old import Segmodule
 
 
-def demo(args):
+def demo(ckpt_path):
     st.title("Turbo Segmentation")
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     seg_module = Segmodule().to(device)
-    seg_module.load_state_dict(torch.load(args.ckpt, map_location="cpu"), strict=True)
+    seg_module.load_state_dict(torch.load(ckpt_path, map_location="cpu"), strict=True)
     
     head_cols = st.columns([1, 1, 1])
     with head_cols[0]:
@@ -57,10 +58,10 @@ def demo(args):
         ),
     )
     sampler.n_sample_steps = n_steps
-    default_prompt = "A cinematic shot of a baby racoon wearing an intricate italian priest robe."
+    default_prompt = "A cinematic shot of a baby pikachu wearing an intricate italian priest robe."
     default_catogory = "priest robe"
-    prompt = st_keyup("Enter a value", value=default_prompt, debounce=300, key="interactive_text")
-    catogory = st_keyup("Enter a value", value=default_catogory, debounce=300, key="interactive_text")
+    prompt = st_keyup("Prompt for diffusion", value=default_prompt, debounce=300, key="interactive_text")
+    catogory = st_keyup("Query category", value=default_catogory, debounce=30, key="text")
     
 
     cols = st.columns([1, 5, 1])
@@ -77,6 +78,7 @@ def demo(args):
             model, sampler, H=512, W=512, seed=st.session_state.seed, prompt=prompt, filter=state.get("filter")
         )
         img = out[0]
+        diffusion_features = copy.copy(get_feature_dic())
         # get class embedding
         class_embedding, uc = sample(
             model, sampler, condition_only=True, H=512, W=512, seed=st.session_state.seed, 
@@ -85,22 +87,19 @@ def demo(args):
         class_embedding = class_embedding['crossattn']
         if class_embedding.size()[1] > 1:
             class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
-        class_embedding = class_embedding.repeat(1, 1, 1)
 
         # seg_module
-        diffusion_features = get_feature_dic()
         total_pred_seg = seg_module(diffusion_features, class_embedding)
 
         pred_seg = total_pred_seg[0]
         label_pred_prob = torch.sigmoid(pred_seg)
         label_pred_mask = torch.zeros_like(label_pred_prob, dtype=torch.float32)
         label_pred_mask[label_pred_prob > 0.5] = 1
-        annotation_pred = label_pred_mask.cpu()
-
-        mask = annotation_pred.numpy()
+        
+        mask = label_pred_mask.cpu().numpy()
         mask = np.expand_dims(mask, 0)
-        done_image_mask = plot_mask(img, mask, alpha=0.6, indexlist=[0]).reshape((512, 512, 3))
-        output = np.concatenate(img.cpu().numpy(), done_image_mask)
+        done_image_mask = plot_mask(img, mask, alpha=0.5, indexlist=[0]).reshape((512, 512, 3))
+        output = np.concatenate([img, done_image_mask], axis = 1)
         with cols[1]:
             st.image(output)
 
@@ -108,12 +107,5 @@ def demo(args):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    parser.add_argument(
-        "--ckpt",
-        type=str,
-        default="grounding_module.pth",
-        help="path to checkpoint of grounding module",
-    )
-    
-    args = parser.parse_args()
-    demo(args)
+    ckpt_path = 'outputs/exps/diffusion/ckpts/checkpoint_latest.pth'
+    demo(ckpt_path)

@@ -15,7 +15,7 @@ from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
 # from inference import init_detector, inference_detector
 from utils import chunk, get_rand
-from seg_module_old import Segmodule
+from seg_module import Segmodule
 from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
@@ -132,6 +132,7 @@ def main(args):
                 prompt=prompts[0], filter=state.get("filter")
             )
             x_sample_list = [out[0]]
+            diffusion_features = copy.copy(get_feature_dic())
             
             # detector
             result = inference_detector(pretrain_detector, x_sample_list)
@@ -160,7 +161,6 @@ def main(args):
             class_embedding = class_embedding.repeat(batch_size, 1, 1)
             
             # seg_module
-            diffusion_features = get_feature_dic()
             total_pred_seg = seg_module(diffusion_features, class_embedding)
             
             loss = []
