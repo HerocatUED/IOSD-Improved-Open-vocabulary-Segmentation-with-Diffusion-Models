@@ -15,7 +15,7 @@ from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
 # from inference import init_detector, inference_detector
 from utils import chunk, get_rand
-from seg_module import Segmodule
+from seg_module_old import Segmodule
 from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
@@ -85,14 +85,14 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     batch_size = args.n_samples
-    learning_rate = 1e-5
-    total_iter = 15000
+    learning_rate = 1e-4
+    total_iter = 30000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
     loss_fn = nn.BCEWithLogitsLoss()
-    
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=9000, gamma=0.1)
     if batch_size > 1:
         print("Model Distributed DataParallel")
         torch.multiprocessing.set_sharing_strategy('file_system')
@@ -107,6 +107,7 @@ def main(args):
     assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
 
     for j in range(1, total_iter+1):
+        lr_scheduler.step()
         print('Iter ' + str(j) + '/' + str(total_iter))
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]

@@ -14,6 +14,7 @@ TODO List：
 - [ ] Check training classes, remove those mmdet can't segment
 - [ ] Build prompts, not always "a photography of ..." 
 - [ ] Batch Size Problem
+- [x] lr schedule
 - [ ] Explore uc to seg_module
 - [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. 
