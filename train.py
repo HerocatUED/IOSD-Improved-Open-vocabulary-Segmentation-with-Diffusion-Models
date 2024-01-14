@@ -80,7 +80,7 @@ def main(args):
     
     batch_size = args.n_samples
     learning_rate = 1e-4
-    total_iter = 30000
+    total_iter = 20000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
@@ -105,7 +105,7 @@ def main(args):
         print('Iter ' + str(j) + '/' + str(total_iter))
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
-            prompt = "A cinematic shot of a " + trainclass
+            prompt = "a photograph of a " + trainclass
             print(f"Iter {j}: prompt--{prompt}")
             assert prompt is not None
             data = [batch_size * [prompt]]
