@@ -13,7 +13,6 @@ from scripts.demo.turbo import *
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
-# from inference import init_detector, inference_detector
 from utils import chunk, get_rand
 from seg_module import Segmodule
 from evaluate import evaluate
@@ -71,11 +70,6 @@ def main(args):
         ),
     )
     sampler.noise_sampler = SeededNoise(seed=args.seed)
-    
-    # sampler.noise_sampler = SeededNoise(seed=args.seed)
-    # prompt = "A cinematic shot of a baby racoon wearing an intricate italian priest robe."
-    # out = sample(model, sampler, H=512, W=512, seed=args.seed, prompt=prompt, filter=state.get("filter"))
-    # Image.fromarray(out[0]).save(f'{prompt}.png')
 
     os.makedirs(args.exp_dir, exist_ok=True)
     img_dir = os.path.join(args.exp_dir, 'imgs')
@@ -111,7 +105,7 @@ def main(args):
         print('Iter ' + str(j) + '/' + str(total_iter))
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
-            prompt = "a photograph of a " + trainclass
+            prompt = "A cinematic shot of a " + trainclass
             print(f"Iter {j}: prompt--{prompt}")
             assert prompt is not None
             data = [batch_size * [prompt]]

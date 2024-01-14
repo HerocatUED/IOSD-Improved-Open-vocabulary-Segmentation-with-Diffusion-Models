@@ -3,7 +3,8 @@ Project of Multimodal Learning (PKU 2023 Autumn)
 
 This project is based on [Grounded-Diffusion](https://github.com/Lipurple/Grounded-Diffusion), 
 but we modified the whole code base because the original codes are too ugly and hard to use.
-We only remained the idea and reconsrtucted the whole project based on official stable diffusion code base.
+We only remained the idea and reconstructed the whole project based on official stable diffusion code base, 
+so as to easy extension.
 
 TODO List：
 - [x] Reproduce

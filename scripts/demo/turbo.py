@@ -95,6 +95,7 @@ def sample(
     model,
     sampler,
     prompt="A lush garden with oversized flowers and vibrant colors, inhabited by miniature animals.",
+    negative_prompt="",
     H=1024,
     W=1024,
     seed=None,
@@ -114,7 +115,7 @@ def sample(
             "target_height": H,
         },
         prompt=prompt,
-        negative_prompt=""
+        negative_prompt=negative_prompt
     )
 
     if seed is None:

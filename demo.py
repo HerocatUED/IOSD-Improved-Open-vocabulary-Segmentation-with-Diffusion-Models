@@ -59,7 +59,7 @@ def demo(ckpt_path):
     )
     sampler.n_sample_steps = n_steps
     default_prompt = "A cinematic shot of a baby pikachu wearing an intricate italian priest robe."
-    default_catogory = "priest robe"
+    default_catogory = "pikachu"
     prompt = st_keyup("Prompt for diffusion", value=default_prompt, debounce=300, key="interactive_text")
     catogory = st_keyup("Query category", value=default_catogory, debounce=30, key="text")
     
