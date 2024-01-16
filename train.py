@@ -32,15 +32,19 @@ def load_classes(args):
         class_coco[c_name] = count
         count += 1
 
-    pascal_file = f"configs/data/VOC/class_split{args.class_split}.csv"
+    if args.class_split < 4:  # PASCAL
+        split_idx = 15
+    else:                     # COCO
+        split_idx = 64
+    class_file = f"configs/data/VOC/class_split{args.class_split}.csv"
     class_total = []
-    f = open(pascal_file, "r")
+    f = open(class_file, "r")
     count = 0
     for line in f.readlines():
         count += 1
         class_total.append(line.split(",")[0])
-    class_train = class_total[:15]
-    class_test = class_total[15:]
+    class_train = class_total[:split_idx]
+    class_test = class_total[split_idx:]
     
     return class_train, class_test, class_coco
 
@@ -119,9 +123,10 @@ def main(args):
         # detector
         result = inference_detector(pretrain_detector, x_sample_list, text_prompt=trainclass)
         flag = True # detect if mmdet fail to detect the object
-        seg_result = result.pred_instances.masks[0].unsqueeze(0)
+        seg_result = result.pred_instances.masks
         if len(seg_result) > 0: flag = False
         if flag: continue # "pretrain detector fail to detect the object
+        seg_result = seg_result[0].unsqueeze(0)
         
         # get class embedding
         class_embedding, uc = sample(
@@ -130,7 +135,9 @@ def main(args):
         )
         class_embedding = class_embedding['crossattn']
         if class_embedding.size()[1] > 1:
-            class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
+            # class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
+            class_weights = F.softmax(class_embedding, dim=1)
+            class_embedding = torch.sum(class_weights * class_embedding, dim=1, keepdim=True)
         class_embedding = class_embedding.repeat(1, 1, 1)
         
         # seg_module
