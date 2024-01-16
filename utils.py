@@ -23,6 +23,33 @@ def get_rand():
     return torch.randint(high = 2**31, size = (1,))[0]
 
 
+def load_classes(id):
+    print("Loading classes from COCO and PASCAL")
+    class_coco = {}
+    f = open("configs/data/coco_80_class.txt", "r")
+    count = 0
+    for line in f.readlines():
+        c_name = line.split("\n")[0]
+        class_coco[c_name] = count
+        count += 1
+
+    if id < 4:  # PASCAL
+        split_idx = 15
+    else:                     # COCO
+        split_idx = 64
+    class_file = f"configs/data/VOC/class_split{id}.csv"
+    class_total = []
+    f = open(class_file, "r")
+    count = 0
+    for line in f.readlines():
+        count += 1
+        class_total.append(line.split(",")[0])
+    class_train = class_total[:split_idx]
+    class_test = class_total[split_idx:]
+    
+    return class_train, class_test, class_coco
+
+
 def chunk(it, size):
     it = iter(it)
     return iter(lambda: tuple(islice(it, size)), ())

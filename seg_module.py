@@ -309,8 +309,8 @@ class Segmodule(nn.Module):
         
         batch_size = features[0].size()[0]
         patch_size = 4 # the same as ViT
-        text_embedding = rearrange(text_embedding, 'b n d -> (b n) d  ')
-        output_query = self.input_mlp(text_embedding)
+        
+        output_query = self.input_mlp(rearrange(text_embedding, 'b n d -> (b n) d  '))
         
         for i, image_feature in enumerate(features):
             # patch partition

@@ -27,6 +27,13 @@ def demo(ckpt_path):
             mode = "txt2img"
         else:
             mode = "skip"
+    
+    with head_cols[2]:
+        v_spacer(2)
+        if st.checkbox("Save img"):
+            save_img = True
+        else:
+            save_img = False
 
     if mode != "skip":
         state = init_st(version_dict, load_filter=True)
@@ -84,9 +91,7 @@ def demo(ckpt_path):
             model, sampler, condition_only=True, H=512, W=512, seed=st.session_state.seed, 
             prompt=catogory, filter=state.get("filter")
         )
-        class_embedding = class_embedding['crossattn']
-        if class_embedding.size()[1] > 1:
-            class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
+        class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
 
         # seg_module
         total_pred_seg = seg_module(diffusion_features, class_embedding)

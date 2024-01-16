@@ -10,7 +10,7 @@ TODO List：
 - [x] Reproduce
 - [x] Clean the code base
 - [x] Try up-to-date stable diffusion models(we modified the whole code base)
-- [x] Explorey frozen word embeddings
+- [x] Explore frozen word embeddings
 - [x] Modify fusion module with advanced techniques
 - [x] Check training classes, remove those mmdet can't segment
 - [x] Build prompts, not always "a photography of ..." 

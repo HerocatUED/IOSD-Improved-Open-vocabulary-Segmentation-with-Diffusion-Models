@@ -15,45 +15,19 @@ from scripts.demo.turbo import *
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
-from utils import chunk, get_rand
+from utils import chunk, get_rand, IoU, load_classes
 from seg_module import Segmodule
 from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
 
 
-def load_classes(args):
-    print("Loading classes from COCO and PASCAL")
-    class_coco = {}
-    f = open("configs/data/coco_80_class.txt", "r")
-    count = 0
-    for line in f.readlines():
-        c_name = line.split("\n")[0]
-        class_coco[c_name] = count
-        count += 1
-
-    if args.class_split < 4:  # PASCAL
-        split_idx = 15
-    else:                     # COCO
-        split_idx = 64
-    class_file = f"configs/data/VOC/class_split{args.class_split}.csv"
-    class_total = []
-    f = open(class_file, "r")
-    count = 0
-    for line in f.readlines():
-        count += 1
-        class_total.append(line.split(",")[0])
-    class_train = class_total[:split_idx]
-    class_test = class_total[split_idx:]
-    
-    return class_train, class_test, class_coco
-
 
 def main(args):
     
     seed_everything(args.seed)
 
-    class_train, class_test, class_coco = load_classes(args)
+    class_train, class_test, class_coco = load_classes(args.class_split)
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     config_file = 'src/mmdetection/configs/swin/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco.py'
@@ -86,23 +60,33 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 1e-4
-    total_iter = 50000
+    total_iter = 10000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=15000, gamma=0.5)
-
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=9000, gamma=0.5)
+    
+    class_embedding_dic = {}
+    for class_name in class_train:
+        class_embedding, uc = get_cond(model, H=args.H, W=args.W, prompt=class_name)
+        class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
+        class_embedding_dic[class_name] = class_embedding
 
     print('***********************   begin   **********************************')
     print(f"Start training with maximum {total_iter} iterations.")
-
 
     for j in tqdm(range(1, total_iter+1)):
         lr_scheduler.step()
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
             prompt = "a photograph of a " + trainclass
+        # if not args.from_file:
+        #     trainclass = class_train[random.randint(0, len(class_train)-1)]
+        #     otherclass = class_train[random.randint(0, len(class_train)-1)]
+        #     rand = random.random()
+        #     if rand >= 0.5: prompt = f"a photograph of a {trainclass} and a {otherclass}."
+        #     else: prompt = f"a photograph of a {otherclass} and a {trainclass}."
         else:
             raise NotImplementedError
             print(f"reading prompts from {args.from_file}")
@@ -117,38 +101,27 @@ def main(args):
             model, sampler, H=args.H, W=args.W, seed=seed, 
             prompt=prompt, filter=state.get("filter")
         )
-        x_sample_list = out[0]
-        diffusion_features = copy.copy(get_feature_dic())
         
         # detector
-        result = inference_detector(pretrain_detector, x_sample_list, text_prompt=trainclass)
+        result = inference_detector(pretrain_detector, out[0], text_prompt=trainclass)
         flag = True # detect if mmdet fail to detect the object
         seg_result = result.pred_instances.masks
         if len(seg_result) > 0: flag = False
         if flag: continue # "pretrain detector fail to detect the object
-        seg_result = seg_result[0].unsqueeze(0)
-        
-        # get class embedding
-        class_embedding, uc = sample(
-            model, sampler, condition_only=True, H=args.H, W=args.W, seed=seed, 
-            prompt=trainclass, filter=state.get("filter")
-        )
-        class_embedding = class_embedding['crossattn']
-        if class_embedding.size()[1] > 1:
-            # class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
-            class_weights = F.softmax(class_embedding, dim=1)
-            class_embedding = torch.sum(class_weights * class_embedding, dim=1, keepdim=True)
-        class_embedding = class_embedding.repeat(1, 1, 1)
+        gt_seg = seg_result[0].unsqueeze(0).float() # 1, 512, 512
         
         # seg_module
-        pred_seg = seg_module(diffusion_features, class_embedding)
+        pred_seg = seg_module(get_feature_dic(), class_embedding_dic[trainclass])
         pred_seg = pred_seg.squeeze(0)
-        gt_seg = seg_result.float() # 1, 512, 512
+        
+        iou = IoU(pred_seg, gt_seg)
         loss = F.binary_cross_entropy_with_logits(pred_seg, gt_seg)
         g_optim.zero_grad()
         loss.backward()
         g_optim.step()
+        
         writer.add_scalar('train/loss', loss.item(), global_step=j)
+        writer.add_scalar('train/iou', iou, global_step=j)
         
         # visualization 
         if  j % 200 == 0:
@@ -203,7 +176,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--class_split",
         type=int,
-        help="the class split: 1,2,3",
+        help="the class split: 1,2,3,4,5,6",
         default=1
     )
     parser.add_argument(

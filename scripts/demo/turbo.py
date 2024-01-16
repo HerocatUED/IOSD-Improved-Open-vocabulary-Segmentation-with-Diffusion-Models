@@ -91,6 +91,42 @@ def init_embedder_options(keys, init_dict, prompt=None, negative_prompt=None):
     return value_dict
 
 
+def get_cond(
+    model,
+    prompt="A lush garden with oversized flowers and vibrant colors, inhabited by miniature animals.",
+    negative_prompt="",
+    H=1024,
+    W=1024
+):
+    F = 8
+    C = 4
+    shape = (1, C, H // F, W // F)
+
+    value_dict = init_embedder_options(
+        keys=get_unique_embedder_keys_from_conditioner(model.conditioner),
+        init_dict={
+            "orig_width": W,
+            "orig_height": H,
+            "target_width": W,
+            "target_height": H,
+        },
+        prompt=prompt,
+        negative_prompt=negative_prompt
+    )
+
+    precision_scope = autocast
+    with torch.no_grad():
+        with precision_scope("cuda"):
+            batch, batch_uc = get_batch(
+                get_unique_embedder_keys_from_conditioner(model.conditioner),
+                value_dict,
+                [1],
+            )
+            c = model.conditioner(batch)
+            uc = model.conditioner(batch_uc)
+            return c, uc
+
+
 def sample(
     model,
     sampler,
@@ -99,8 +135,7 @@ def sample(
     H=1024,
     W=1024,
     seed=None,
-    filter=None,
-    condition_only=False
+    filter=None
 ):
     F = 8
     C = 4
@@ -130,8 +165,7 @@ def sample(
             )
             c = model.conditioner(batch)
             uc = model.conditioner(batch_uc)
-            if condition_only:
-                return c, uc
+
             randn = seeded_randn(shape, seed)
 
             def denoiser(input, sigma, c):
