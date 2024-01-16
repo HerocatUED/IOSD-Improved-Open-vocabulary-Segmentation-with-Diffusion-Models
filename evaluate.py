@@ -17,7 +17,6 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
     print(f"Start evaluate with maximum {eval_iter} iterations.")
 
     batch_size = 1
-    assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
     
     with torch.no_grad():
         for v, classes in enumerate([class_seen, class_unseen]):
