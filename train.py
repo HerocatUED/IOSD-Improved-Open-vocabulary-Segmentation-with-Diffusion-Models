@@ -58,7 +58,7 @@ def main(args):
 
     version_dict = VERSION2SPECS["SDXL-Turbo"]
     state = init_st(version_dict, load_filter=True)
-    model = state["model"] #TODO fp16 or full
+    model = state["model"]
     load_model(model)
 
     sampler = SubstepSampler(
@@ -80,13 +80,13 @@ def main(args):
     
     batch_size = args.n_samples
     learning_rate = 1e-4
-    total_iter = 20000
+    total_iter = 50000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
     loss_fn = nn.BCEWithLogitsLoss()
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=9000, gamma=0.1)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=15000, gamma=0.5)
     if batch_size > 1:
         print("Model Distributed DataParallel")
         torch.multiprocessing.set_sharing_strategy('file_system')
