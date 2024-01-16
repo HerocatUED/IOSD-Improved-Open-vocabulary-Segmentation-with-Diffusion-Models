@@ -5,6 +5,7 @@ import torchvision
 import torch
 import warnings
 import torch.nn as nn
+import torch.nn.functional as F
 import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
@@ -78,27 +79,17 @@ def main(args):
     os.makedirs(ckpt_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
-    batch_size = args.n_samples
     learning_rate = 1e-4
     total_iter = 50000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    loss_fn = nn.BCEWithLogitsLoss()
     lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=15000, gamma=0.5)
-    if batch_size > 1:
-        print("Model Distributed DataParallel")
-        torch.multiprocessing.set_sharing_strategy('file_system')
-        seg_module = torch.nn.parallel.DistributedDataParallel(
-            module=seg_module, device_ids=[device],
-            output_device=device, broadcast_buffers=False)
 
     print('***********************   begin   **********************************')
     print(f"Start training with maximum {total_iter} iterations.")
 
-    batch_size = args.n_samples
-    assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
 
     for j in range(1, total_iter+1):
         lr_scheduler.step()
@@ -107,98 +98,64 @@ def main(args):
             trainclass = class_train[random.randint(0, len(class_train)-1)]
             prompt = "a photograph of a " + trainclass
             print(f"Iter {j}: prompt--{prompt}")
-            assert prompt is not None
-            data = [batch_size * [prompt]]
         else:
             raise NotImplementedError
             print(f"reading prompts from {args.from_file}")
             with open(args.from_file, "r") as f:
                 data = f.read().splitlines()
                 data = list(chunk(data, batch_size))
-                
-        for prompts in data:
-            # class_index = class_coco[trainclass]
-            
-            # generate images
-            seed = get_rand()
-            out = sample(
-                model, sampler, H=args.H, W=args.W, seed=seed, 
-                prompt=prompts[0], filter=state.get("filter")
-            )
-            x_sample_list = [out[0]]
-            diffusion_features = copy.copy(get_feature_dic())
-            
-            # detector
-            result = inference_detector(pretrain_detector, x_sample_list)
-            seg_result_list = []
-            flag = False # detect if mmdet fail to detect the object
-            for i in range(len(result)):
-                seg_result = result[i].pred_instances.masks
-                if len(seg_result) > 0: 
-                    flag = False
-                    seg_result_list.append(seg_result[0].unsqueeze(0))
-                else: 
-                    flag = True
-                    break
-            if flag:
-                print("pretrain detector fail to detect the object in the class:", trainclass) 
-                continue
-            
-            # get class embedding
-            class_embedding, uc = sample(
-                model, sampler, condition_only=True, H=args.H, W=args.W, seed=seed, 
-                prompt=trainclass, filter=state.get("filter")
-            )
-            class_embedding = class_embedding['crossattn']
-            if class_embedding.size()[1] > 1:
-                class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
-            class_embedding = class_embedding.repeat(batch_size, 1, 1)
-            
-            # seg_module
-            total_pred_seg = seg_module(diffusion_features, class_embedding)
-            
-            loss = []
-            for b_index in range(batch_size):
-                pred_seg = total_pred_seg[b_index]
-
-                label_pred_prob = torch.sigmoid(pred_seg)
-                label_pred_mask = torch.zeros_like(label_pred_prob, dtype=torch.float32)
-                label_pred_mask[label_pred_prob > 0.5] = 1
-                annotation_pred = label_pred_mask.cpu()
-
-                if len(seg_result_list[b_index]) == 0:
-                    print("pretrain detector fail to detect the object in the class:", trainclass)
-                else:
-                    seg = seg_result_list[b_index]
-                    seg = seg.float().cuda() # 1, 512, 512
-                    loss.append(loss_fn(pred_seg, seg))
-                    annotation_pred_gt = seg.cpu()
-                    # iou += IoU(annotation_pred_gt, annotation_pred)
-                    # print('iou', IoU(annotation_pred_gt, annotation_pred))
-                    viz_tensor2 = torch.cat([annotation_pred_gt, annotation_pred], axis=1)
-                    if  j % 200 == 0:
-                        torchvision.utils.save_image(viz_tensor2, 
+        # class_index = class_coco[trainclass]
+        
+        # generate images
+        seed = get_rand()
+        out = sample(
+            model, sampler, H=args.H, W=args.W, seed=seed, 
+            prompt=prompt, filter=state.get("filter")
+        )
+        x_sample_list = out[0]
+        diffusion_features = copy.copy(get_feature_dic())
+        
+        # detector
+        result = inference_detector(pretrain_detector, x_sample_list, text_prompt=trainclass)
+        flag = True # detect if mmdet fail to detect the object
+        seg_result = result.pred_instances.masks[0].unsqueeze(0)
+        if len(seg_result) > 0: flag = False
+        if flag: continue # "pretrain detector fail to detect the object
+        
+        # get class embedding
+        class_embedding, uc = sample(
+            model, sampler, condition_only=True, H=args.H, W=args.W, seed=seed, 
+            prompt=trainclass, filter=state.get("filter")
+        )
+        class_embedding = class_embedding['crossattn']
+        if class_embedding.size()[1] > 1:
+            class_embedding = torch.unsqueeze(class_embedding.mean(1), 1)
+        class_embedding = class_embedding.repeat(1, 1, 1)
+        
+        # seg_module
+        pred_seg = seg_module(diffusion_features, class_embedding)
+        pred_seg = pred_seg.squeeze(0)
+        gt_seg = seg_result.float() # 1, 512, 512
+        loss = F.binary_cross_entropy_with_logits(pred_seg, gt_seg)
+        g_optim.zero_grad()
+        loss.backward()
+        g_optim.step()
+        writer.add_scalar('train/loss', loss.item(), global_step=j)
+        
+        # visualization 
+        if  j % 200 == 0:
+            pred_seg = torch.sigmoid(pred_seg)
+            pred_seg[pred_seg <= 0.5] = 0
+            pred_seg[pred_seg > 0.5] = 1
+            viz = torch.cat([gt_seg, pred_seg], axis=1)
+            torchvision.utils.save_image(viz, 
                             img_dir +'/viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
                             normalize=True, scale_each=True)
-                        Image.fromarray(out[0]).save(f'{img_dir}/{prompts[0]}.png')
-                        
-            if len(loss) > 0:
-                total_loss = 0
-                for i in range(len(loss)):
-                    total_loss += loss[i]
-                total_loss /= batch_size
-                g_optim.zero_grad()
-                total_loss.backward()
-                g_optim.step()
-
-                writer.add_scalar('train/loss', total_loss.item(), global_step=j)
-                print("Training step: {0:05d}/{1:05d}, loss: {2:0.4f}".format(j, total_iter, total_loss))
-        
+            Image.fromarray(out[0]).save(f'{img_dir}/{prompt}.png')
+                    
         # save checkpoint
-        if j % 200 == 0:
-            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
-        if j % 1000 == 0:
-            torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
+        if j % 200 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
+        if j % 1000 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
     
     evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, args.exp_dir)
 
@@ -211,12 +168,6 @@ if __name__ == "__main__":
         type=int,
         default=1,
         help="number of sampling steps",
-    )
-    parser.add_argument(
-        "--n_samples",
-        type=int,
-        default=1,
-        help="how many samples to produce for each given prompt. A.k.a batch size",
     )
     parser.add_argument(
         "--from-file",
@@ -238,7 +189,7 @@ if __name__ == "__main__":
     parser.add_argument(
         "--seed",
         type=int,
-        default=13146,
+        default=42,
         help="the seed (for reproducible sampling)",
     )
     parser.add_argument(
