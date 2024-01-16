@@ -10,6 +10,7 @@ import torch.optim as optim
 
 from torch.utils.tensorboard import SummaryWriter
 from PIL import Image
+from tqdm import tqdm
 from scripts.demo.turbo import *
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
@@ -56,6 +57,7 @@ def main(args):
     pretrain_detector = init_detector(config_file, checkpoint_file, device=device)
     
     seg_module = Segmodule().to(device)
+    # seg_module = torch.compile(seg_module)
 
     version_dict = VERSION2SPECS["SDXL-Turbo"]
     state = init_st(version_dict, load_filter=True)
@@ -91,13 +93,11 @@ def main(args):
     print(f"Start training with maximum {total_iter} iterations.")
 
 
-    for j in range(1, total_iter+1):
+    for j in tqdm(range(1, total_iter+1)):
         lr_scheduler.step()
-        print('Iter ' + str(j) + '/' + str(total_iter))
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
             prompt = "a photograph of a " + trainclass
-            print(f"Iter {j}: prompt--{prompt}")
         else:
             raise NotImplementedError
             print(f"reading prompts from {args.from_file}")
