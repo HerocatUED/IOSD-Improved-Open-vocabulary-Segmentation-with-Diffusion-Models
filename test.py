@@ -21,7 +21,7 @@ def main(args):
     
     version_dict = VERSION2SPECS["SDXL-Turbo"]
     state = init_st(version_dict, load_filter=True)
-    model = state["model"] #TODO fp16 or full
+    model = state["model"] 
     load_model(model)
 
     sampler = SubstepSampler(
@@ -41,7 +41,7 @@ def main(args):
     outpath = args.outdir
     batch_size = args.n_samples
 
-    assert batch_size == 1 # TODO only batch size==1 . see turbo.py line 126 and sample.py do_sample
+    assert batch_size == 1 
     
     with torch.no_grad():
         prompt = args.prompt
