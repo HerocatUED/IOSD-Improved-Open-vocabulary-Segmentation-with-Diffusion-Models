@@ -16,7 +16,7 @@ TODO List：
 - [x] Build prompts, not always "a photography of ..." 
 - [x] lr schedule
 - [x] Optional: web UI inference demo
-- [ ] Optional: Try segment a given image rather than segment generated images. 
+- [ ] Optional: Try segment a given image rather than segment generated images. *But SDXL-Turbo Model is a txt2img model* 
 - [ ] Optional: Try Stable Video Diffusion via video segmentation
 
 ## Requirements
@@ -25,17 +25,18 @@ TODO List：
 3. Make sure you have access to hugging face (If not, just put ```HF_ENDPOINT=https://hf-mirror.com``` before all commands bellow)
 
 ## Model Zoo
-Put these models under `checkpoint` folder:
+Put these models under `checkpoints` folder:
 1. [diffusion model(sd_xl_turbo_1.0_fp16.safetensors)](https://huggingface.co/stabilityai/sdxl-turbo/tree/main)
-2. [detection model]()
+2. [detection model](https://drive.google.com/file/d/1JbJ7tWB15DzCB9pfLKnUHglckumOdUio/view)
 3. [segmentation module]()
 
 ## Demo
 After you have your seg_model, you can run a real-time web UI with following command:
 ```streamlit run demo.py```
+Note: load models will take a while when first running the project.
 
 ## Train & Inference
-Before training, please download the diffusion model and detection model into a folder called `checkpoint`. 
+Before training, please download the diffusion model and detection model into a folder called `checkpoints`. 
 
 See *command.txt*
 	
