@@ -36,7 +36,7 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
             
             for class_name in classes:
                 class_embedding, uc = get_cond(model, H=args.H, W=args.W, prompt=class_name)
-                class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
+                class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
                 class_embedding_dic[class_name] = class_embedding
                 
             for _ in tqdm(range(total_iter), desc = 'seen' if v == 0 else 'unseen'):

@@ -70,7 +70,7 @@ def main(args):
     class_embedding_dic = {}
     for class_name in class_train:
         class_embedding, uc = get_cond(model, H=args.H, W=args.W, prompt=class_name)
-        class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
+        class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
         class_embedding_dic[class_name] = class_embedding
 
     print('***********************   begin   **********************************')

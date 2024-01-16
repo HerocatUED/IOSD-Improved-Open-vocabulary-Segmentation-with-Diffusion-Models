@@ -91,7 +91,7 @@ def demo(ckpt_path):
             model, sampler, condition_only=True, H=512, W=512, seed=st.session_state.seed, 
             prompt=catogory, filter=state.get("filter")
         )
-        class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
+        class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
 
         # seg_module
         total_pred_seg = seg_module(diffusion_features, class_embedding)
