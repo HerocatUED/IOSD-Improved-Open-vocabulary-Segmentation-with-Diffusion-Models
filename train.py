@@ -61,7 +61,7 @@ def main(args):
 
     version_dict = VERSION2SPECS["SDXL-Turbo"]
     state = init_st(version_dict, load_filter=True)
-    model = state["model"] #TODO fp16 or full
+    model = state["model"]
     load_model(model)
 
     sampler = SubstepSampler(
@@ -82,7 +82,7 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 1e-4
-    total_iter = 20000
+    total_iter = 50000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
