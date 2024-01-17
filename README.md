@@ -7,13 +7,12 @@ We only remained the idea and reconstructed the whole project based on official 
 so as to easy extension.
 
 TODO List：
-- [x] Reproduce
-- [x] Clean the code base
+- [x] Reproduce and Clean up the code base
 - [x] Try up-to-date stable diffusion models(we modified the whole code base)
 - [x] Explore frozen word embeddings
 - [x] Modify fusion module with advanced techniques
-- [x] Check training classes, remove those mmdet can't segment
-- [x] Build prompts, not always "a photography of ..." 
+- [x] Check training classes, remove those mmdet can't segment or low confidence
+- [x] Build prompts, not always "a photography of ..." -> "A scene containing a"
 - [x] lr schedule
 - [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. *But SDXL-Turbo Model is a txt2img model* 

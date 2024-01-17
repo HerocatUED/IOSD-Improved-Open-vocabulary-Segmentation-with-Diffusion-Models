@@ -16,7 +16,7 @@ from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
 from utils import chunk, get_rand, IoU, load_classes
-from seg_module import Segmodule
+from seg_module_old import Segmodule
 from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
@@ -65,7 +65,7 @@ def main(args):
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=9000, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=3000, gamma=0.5)
     
     class_embedding_dic = {}
     for class_name in class_train:
@@ -75,12 +75,15 @@ def main(args):
 
     print('***********************   begin   **********************************')
     print(f"Start training with maximum {total_iter} iterations.")
-
+    
+    total_loss = 0
+    total_iou = 0
+    
     for j in tqdm(range(1, total_iter+1)):
         lr_scheduler.step()
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
-            prompt = "a photograph of a " + trainclass
+            prompt = "A scene containing a" + trainclass
         # if not args.from_file:
         #     trainclass = class_train[random.randint(0, len(class_train)-1)]
         #     otherclass = class_train[random.randint(0, len(class_train)-1)]
@@ -88,11 +91,10 @@ def main(args):
         #     if rand >= 0.5: prompt = f"a photograph of a {trainclass} and a {otherclass}."
         #     else: prompt = f"a photograph of a {otherclass} and a {trainclass}."
         else:
-            raise NotImplementedError
             print(f"reading prompts from {args.from_file}")
             with open(args.from_file, "r") as f:
                 data = f.read().splitlines()
-                data = list(chunk(data, batch_size))
+                data = list(data)
         # class_index = class_coco[trainclass]
         
         # generate images
@@ -103,31 +105,40 @@ def main(args):
         )
         
         # detector
-        result = inference_detector(pretrain_detector, out[0], text_prompt=trainclass)
+        result = inference_detector(pretrain_detector, out[0])
         flag = True # detect if mmdet fail to detect the object
-        seg_result = result.pred_instances.masks
-        if len(seg_result) > 0: flag = False
+        for instance in result.pred_instances:
+            if instance.labels[0] != class_coco[trainclass]: continue
+            if instance.scores[0] < 0.7: continue
+            gt_seg = instance.masks[0]
+            flag = False
+            break
         if flag: continue # "pretrain detector fail to detect the object
-        gt_seg = seg_result[0].unsqueeze(0).float() # 1, 512, 512
+        gt_seg = gt_seg.unsqueeze(0).float() # 1, 512, 512
         
         # seg_module
         pred_seg = seg_module(get_feature_dic(), class_embedding_dic[trainclass])
         pred_seg = pred_seg.squeeze(0)
-        
-        iou = IoU(pred_seg, gt_seg)
+    
         loss = F.binary_cross_entropy_with_logits(pred_seg, gt_seg)
         g_optim.zero_grad()
         loss.backward()
         g_optim.step()
+        total_loss += loss.item()
         
-        writer.add_scalar('train/loss', loss.item(), global_step=j)
-        writer.add_scalar('train/iou', iou, global_step=j)
+        pred_seg = torch.sigmoid(pred_seg)
+        pred_seg[pred_seg <= 0.5] = 0
+        pred_seg[pred_seg > 0.5] = 1
+        iou = IoU(pred_seg, gt_seg)
+        total_iou += iou
         
         # visualization 
         if  j % 200 == 0:
-            pred_seg = torch.sigmoid(pred_seg)
-            pred_seg[pred_seg <= 0.5] = 0
-            pred_seg[pred_seg > 0.5] = 1
+            writer.add_scalar('train/loss', total_loss/200, global_step=j)
+            writer.add_scalar('train/iou', total_iou/200, global_step=j)
+            total_loss = 0
+            total_iou = 0
+    
             viz = torch.cat([gt_seg, pred_seg], axis=1)
             torchvision.utils.save_image(viz, 
                             img_dir +'/viz_sample_{0:05d}_seg'.format(j)+trainclass+'.png', 
@@ -135,7 +146,7 @@ def main(args):
             Image.fromarray(out[0]).save(f'{img_dir}/{prompt}.png')
                     
         # save checkpoint
-        if j % 200 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
+        if j % 500 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
         if j % 1000 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
     
     evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, args.exp_dir)
