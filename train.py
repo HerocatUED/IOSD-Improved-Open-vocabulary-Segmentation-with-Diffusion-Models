@@ -59,18 +59,14 @@ def main(args):
     os.makedirs(ckpt_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
-<<<<<<< HEAD
-    learning_rate = 1e-4
-    total_iter = 30000
-=======
     learning_rate = 2e-5
-    total_iter = 5000
->>>>>>> 7b9e3073dcf5f7e5367cd37f4108e37a00c76c58
+    total_iter = 30000
+
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=3000, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=15000, gamma=0.5)
     
     class_embedding_dic = {}
     for class_name in class_train:
