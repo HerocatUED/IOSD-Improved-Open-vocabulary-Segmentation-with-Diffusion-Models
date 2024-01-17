@@ -20,7 +20,7 @@ warnings.filterwarnings("ignore")
 
 
 def evaluate(pretrain_detector, seg_module, diffusion_model, 
-             class_seen, class_unseen, exp_dir:str, 
+             class_seen, class_unseen, class_coco, exp_dir:str=None, 
              eval_iter:int = 50, H:int = 512, W:int = 512):
     
     model, sampler, state = diffusion_model
@@ -31,11 +31,11 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
     with torch.no_grad():
         for v, classes in enumerate([class_seen, class_unseen]):
             iou = 0
-            total_iter = eval_iter * len(classes)
+            total_iter = 0
             
             for class_name in tqdm(classes):
                 
-                prompt = "a photograph of a " + class_name
+                prompt = "A modern photograph of a " + class_name
                 class_embedding, uc = get_cond(model, H=H, W=W, prompt=class_name)
                 class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
                 
@@ -43,17 +43,21 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
                     # generate images
                     seed = get_rand()
                     out = sample(
-                        model, sampler, H=args.H, W=args.W, seed=seed, 
+                        model, sampler, H=H, W=W, seed=seed, 
                         prompt=prompt, filter=state.get("filter")
                     )
                     
                     # detector
                     result = inference_detector(pretrain_detector, out[0])
                     flag = True # detect if mmdet fail to detect the object
-                    seg_result = result.pred_instances.masks
-                    if len(seg_result) > 0: flag = False
+                    for instance in result.pred_instances:
+                        if instance.labels[0] != class_coco[class_name]: continue
+                        if instance.scores[0] < 0.8: continue
+                        gt_seg = instance.masks[0]
+                        flag = False
+                        break
                     if flag: continue # "pretrain detector fail to detect the object
-                    gt_seg = seg_result[0].unsqueeze(0).float() # 1, 512, 512
+                    gt_seg = gt_seg.unsqueeze(0).float() # 1, 512, 512
                     
                     # seg_module
                     pred_seg = seg_module(get_feature_dic(), class_embedding)
@@ -62,9 +66,13 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
                     pred_seg[pred_seg <= 0.5] = 0
                     pred_seg[pred_seg > 0.5] = 1
                     iou += IoU(pred_seg, gt_seg)
+                    total_iter += 1
 
+        if exp_dir is not None:
             with open(f'{exp_dir}/ious_{v}.txt', "w") as f:
                 f.write(str(iou/total_iter)+'\n')
+        print("seen" if v == 0 else "unseen")
+        print(iou/total_iter)
           
           
 def main(args):
@@ -95,7 +103,7 @@ def main(args):
     seg_module = Segmodule().to(device)
     seg_module.load_state_dict(torch.load(args.grounding_ckpt, map_location="cpu"), strict=True)
            
-    evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, args.exp_dir)   
+    evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, class_coco, args.exp_dir)   
       
                 
                 
@@ -141,7 +149,7 @@ if __name__ == "__main__":
         "--exp_dir",
         type=str,
         help="path to where to save training things",
-        required=True
+        default=None
     )
     parser.add_argument(
         "--grounding_ckpt",

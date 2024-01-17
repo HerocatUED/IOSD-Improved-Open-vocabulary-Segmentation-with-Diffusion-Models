@@ -28,6 +28,9 @@ def main(args):
     seed_everything(args.seed)
 
     class_train, class_test, class_coco = load_classes(args.class_split)
+    # class_train = list(class_coco.keys())
+    # print(class_train)
+    # print(len(class_train))
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     config_file = 'src/mmdetection/configs/swin/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco.py'
@@ -60,12 +63,12 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 2e-5
-    total_iter = 5000
+    total_iter = 3000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=3000, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=2500, gamma=0.5)
     
     class_embedding_dic = {}
     for class_name in class_train:
@@ -78,12 +81,15 @@ def main(args):
     
     total_loss = 0
     total_iou = 0
+    cnt = 0
+    skip_cnt = 0
+    skip_dic = {class_name: 0 for class_name in class_train}
     
     for j in tqdm(range(1, total_iter+1)):
         lr_scheduler.step()
         if not args.from_file:
             trainclass = class_train[random.randint(0, len(class_train)-1)]
-            prompt = "A scene containing a" + trainclass
+            prompt = "A modern photograph of a " + trainclass
         # if not args.from_file:
         #     trainclass = class_train[random.randint(0, len(class_train)-1)]
         #     otherclass = class_train[random.randint(0, len(class_train)-1)]
@@ -109,11 +115,14 @@ def main(args):
         flag = True # detect if mmdet fail to detect the object
         for instance in result.pred_instances:
             if instance.labels[0] != class_coco[trainclass]: continue
-            if instance.scores[0] < 0.7: continue
+            if instance.scores[0] < 0.8: continue
             gt_seg = instance.masks[0]
             flag = False
             break
-        if flag: continue # "pretrain detector fail to detect the object
+        if flag: 
+            skip_cnt += 1
+            skip_dic[trainclass] += 1
+            continue # "pretrain detector fail to detect the object
         gt_seg = gt_seg.unsqueeze(0).float() # 1, 512, 512
         
         # seg_module
@@ -131,13 +140,20 @@ def main(args):
         pred_seg[pred_seg > 0.5] = 1
         iou = IoU(pred_seg, gt_seg)
         total_iou += iou
+        cnt += 1
         
         # visualization 
         if  j % 100 == 0:
-            writer.add_scalar('train/loss', total_loss/100, global_step=j)
-            writer.add_scalar('train/iou', total_iou/100, global_step=j)
+            writer.add_scalar('train/loss', total_loss/cnt, global_step=j)
+            writer.add_scalar('train/iou', total_iou/cnt, global_step=j)
             total_loss = 0
             total_iou = 0
+            cnt = 0
+            print(f"skip_cnt/total: {skip_cnt}/{j}")
+            skip_dic_nonzero = {class_name: skip_dic[class_name] 
+                                for class_name in skip_dic.keys() if skip_dic[class_name] != 0}
+            print("skip cnt of each class:")
+            print(skip_dic_nonzero)
     
             viz = torch.cat([gt_seg, pred_seg], axis=1)
             torchvision.utils.save_image(viz, 
@@ -149,7 +165,8 @@ def main(args):
         if j % 500 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
         if j % 1000 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
     
-    evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, args.exp_dir)
+    evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, class_coco, args.exp_dir)
+    print(skip_cnt)
 
 
 if __name__ == "__main__":

@@ -10,10 +10,10 @@ HF_ENDPOINT=https://hf-mirror.com python debug.py \
 --prompt "a photograph of pikachu" \
 --category "pikachu"
 
-CUDA_VISIBLE_DEVICES="2" \
+CUDA_VISIBLE_DEVICES="3" \
 HF_ENDPOINT=https://hf-mirror.com python evaluate.py \
---grounding_ckpt 'outputs/exps/diffusion_new/ckpts/checkpoint_latest.pth' \
---exp_dir outputs/exps/diffusion_new
+--grounding_ckpt 'outputs/exps/diffusion_rm-class/ckpts/checkpoint_latest.pth' \
+--exp_dir outputs/exps/diffusion_rm-class
 
 CUDA_VISIBLE_DEVICES="2" \
 HF_ENDPOINT=https://hf-mirror.com streamlit run demo.py 

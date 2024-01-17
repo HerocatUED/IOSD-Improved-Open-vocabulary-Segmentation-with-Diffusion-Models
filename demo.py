@@ -86,10 +86,7 @@ def demo(ckpt_path, output_path):
         )
         img = out[0]
         # get class embedding
-        class_embedding, uc = sample(
-            model, sampler, condition_only=True, H=512, W=512, seed=st.session_state.seed, 
-            prompt=category, filter=state.get("filter")
-        )
+        class_embedding, uc = get_cond(model, H=512, W=512, prompt=category)
         class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
 
         # seg_module
@@ -104,7 +101,7 @@ def demo(ckpt_path, output_path):
         output = np.concatenate([img, image_mask], axis = 1)
         with cols[1]:
             st.image(output)
-            if save_image:
+            if save_img:
                 Image.fromarray(output).save(f'{output_path}/{prompt}.png')
 
 
