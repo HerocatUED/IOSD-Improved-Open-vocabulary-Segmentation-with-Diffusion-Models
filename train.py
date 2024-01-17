@@ -16,7 +16,7 @@ from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from pytorch_lightning import seed_everything
 from mmdet.apis import init_detector, inference_detector
 from utils import chunk, get_rand, IoU, load_classes
-from seg_module_old import Segmodule
+from seg_module import Segmodule
 from evaluate import evaluate
 
 warnings.filterwarnings("ignore")
@@ -59,7 +59,7 @@ def main(args):
     os.makedirs(ckpt_dir, exist_ok=True)
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
-    learning_rate = 1e-4
+    learning_rate = 2e-5
     total_iter = 5000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
@@ -133,9 +133,9 @@ def main(args):
         total_iou += iou
         
         # visualization 
-        if  j % 200 == 0:
-            writer.add_scalar('train/loss', total_loss/200, global_step=j)
-            writer.add_scalar('train/iou', total_iou/200, global_step=j)
+        if  j % 100 == 0:
+            writer.add_scalar('train/loss', total_loss/100, global_step=j)
+            writer.add_scalar('train/iou', total_iou/100, global_step=j)
             total_loss = 0
             total_iou = 0
     
