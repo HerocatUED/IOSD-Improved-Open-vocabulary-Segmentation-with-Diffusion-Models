@@ -60,7 +60,7 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 1e-4
-    total_iter = 10000
+    total_iter = 30000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
@@ -70,7 +70,7 @@ def main(args):
     class_embedding_dic = {}
     for class_name in class_train:
         class_embedding, uc = get_cond(model, H=args.H, W=args.W, prompt=class_name)
-        class_embedding = class_embedding['crossattn'][:, 0, :].unsqueeze(1)
+        class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
         class_embedding_dic[class_name] = class_embedding
 
     print('***********************   begin   **********************************')
