@@ -63,12 +63,12 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 2e-5
-    total_iter = 3000
+    total_iter = 7000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=2500, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=5000, gamma=0.5)
     
     class_embedding_dic = {}
     for class_name in class_train:
@@ -93,9 +93,10 @@ def main(args):
         # if not args.from_file:
         #     trainclass = class_train[random.randint(0, len(class_train)-1)]
         #     otherclass = class_train[random.randint(0, len(class_train)-1)]
+        #     while otherclass == trainclass: otherclass = class_train[random.randint(0, len(class_train)-1)]
         #     rand = random.random()
-        #     if rand >= 0.5: prompt = f"a photograph of a {trainclass} and a {otherclass}."
-        #     else: prompt = f"a photograph of a {otherclass} and a {trainclass}."
+        #     if rand >= 0.5: prompt = f"A cinematic shot of a {trainclass} and a {otherclass}, naturally and realistically."
+        #     else: prompt = f"A cinematic shot of a {otherclass} and a {trainclass}, naturally and realistically."
         else:
             print(f"reading prompts from {args.from_file}")
             with open(args.from_file, "r") as f:
@@ -149,11 +150,6 @@ def main(args):
             total_loss = 0
             total_iou = 0
             cnt = 0
-            print(f"skip_cnt/total: {skip_cnt}/{j}")
-            skip_dic_nonzero = {class_name: skip_dic[class_name] 
-                                for class_name in skip_dic.keys() if skip_dic[class_name] != 0}
-            print("skip cnt of each class:")
-            print(skip_dic_nonzero)
     
             viz = torch.cat([gt_seg, pred_seg], axis=1)
             torchvision.utils.save_image(viz, 
@@ -165,8 +161,14 @@ def main(args):
         if j % 500 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_latest.pth'))
         if j % 1000 == 0: torch.save(seg_module.state_dict(), os.path.join(ckpt_dir, 'checkpoint_'+str(j)+'.pth'))
     
+    print(f"skip_cnt/total: {skip_cnt}/{total_iter}")
+    skip_dic_nonzero = {class_name: skip_dic[class_name] 
+                        for class_name in skip_dic.keys() if skip_dic[class_name] != 0}
+    print("skip cnt of each class:")
+    print(skip_dic_nonzero)
+    
     evaluate(pretrain_detector, seg_module, (model, sampler, state), class_train, class_test, class_coco, args.exp_dir)
-    print(skip_cnt)
+    
 
 
 if __name__ == "__main__":
