@@ -54,10 +54,10 @@ def demo(ckpt_path, output_path):
             st.session_state.seed -= 1
 
     with head_cols[3]:
-        n_steps = st.number_input(label="number of steps", min_value=1, max_value=4)
+        n_steps = st.number_input(label="number of steps", min_value=4, max_value=4)
     
     sampler = SubstepSampler(
-        n_sample_steps=1,
+        n_sample_steps=4,
         num_steps=1000,
         eta=1.0,
         discretization_config=dict(
@@ -85,6 +85,7 @@ def demo(ckpt_path, output_path):
             model, sampler, H=512, W=512, seed=st.session_state.seed, prompt=prompt, filter=state.get("filter")
         )
         img = out[0]
+        
         # get class embedding
         class_embedding, uc = get_cond(model, H=512, W=512, prompt=category)
         class_embedding = class_embedding['crossattn'][:, 1, :].unsqueeze(1)
@@ -97,7 +98,7 @@ def demo(ckpt_path, output_path):
         
         mask = pred_seg.cpu().numpy()
         mask = np.expand_dims(mask, 0)
-        image_mask = plot_mask(img, mask, alpha=0.5, indexlist=[0]).reshape((512, 512, 3))
+        image_mask = plot_mask(img, mask, colors=[0, 255, 0], alpha=0.5, indexlist=[0]).reshape((512, 512, 3))
         output = np.concatenate([img, image_mask], axis = 1)
         with cols[1]:
             st.image(output)
@@ -110,4 +111,5 @@ if __name__ == "__main__":
 
     ckpt_path = 'outputs/exps/diffusion/ckpts/checkpoint_latest.pth'
     output_path = 'outputs/txt2img'
+    os.makedirs(output_path, exist_ok=True)
     demo(ckpt_path, output_path)

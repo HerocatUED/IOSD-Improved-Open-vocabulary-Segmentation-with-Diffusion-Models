@@ -34,10 +34,13 @@ After you have your seg_model, you can run a real-time web UI with following com
 ```streamlit run demo.py```
 Note: load models will take a while when first running the project.
 
-## Train & Inference
-Before training, please download the diffusion model and detection model into a folder called `checkpoints`. 
+## Train
+Replace num with class split id, 1-3 belongs to PASCAL, 4-6 belongs to COCO.
+```python train.py --exp_dir outputs/exps/exp$num$ --class_split $num$```
 
-See *command.txt*
+## Evaluate
+Replace num with class split id, 1-3 belongs to PASCAL, 4-6 belongs to COCO.
+```python evaluate.py --grounding_ckpt $path to segmentation module$ --exp_dir outputs/exps/exp$num$ --class_split $num$```
 	
 ## Acknowledgements
 Many thanks to the code bases from [Stable Diffusion](https://github.com/CompVis/stable-diffusion), [CLIP](https://github.com/openai/CLIP), [taming-transformers](https://github.com/CompVis/taming-transformers), [mmdetection](https://github.com/open-mmlab/mmdetection)
