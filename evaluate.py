@@ -70,11 +70,11 @@ def evaluate(pretrain_detector, seg_module, diffusion_model,
                     iou += IoU(pred_seg, gt_seg)
                     total_iter += 1
 
-        if exp_dir is not None:
-            with open(f'{exp_dir}/ious_{v}.txt', "w") as f:
-                f.write(str(iou/total_iter)+'\n')
-        print("seen" if v == 0 else "unseen")
-        print(iou/total_iter)
+            if exp_dir is not None:
+                with open(f'{exp_dir}/ious_{v}.txt', "w") as f:
+                    f.write(str(iou/total_iter)+'\n')
+            print("seen" if v == 0 else "unseen")
+            print(iou/total_iter)
           
           
 def main(args):

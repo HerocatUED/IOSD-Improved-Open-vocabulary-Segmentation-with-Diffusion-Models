@@ -11,8 +11,9 @@ TODO List：
 - [x] Try up-to-date stable diffusion models(we modified the whole code base)
 - [x] Explore frozen word embeddings
 - [x] Modify fusion module with advanced techniques
-- [x] Check training classes, remove those mmdet can't segment or low confidence
-- [x] Build prompts, not always "a photography of ..." -> "A scene containing a"
+- [x] Filter: remove imgs those mmdet can't segment or gets low confidence
+- [x] Build prompts with negative class
+- [x] Faster training and inference speed
 - [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. *But SDXL-Turbo Model is a txt2img model* 
 - [ ] Optional: Try Stable Video Diffusion via video segmentation
