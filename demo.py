@@ -109,7 +109,7 @@ def demo(ckpt_path, output_path):
 if __name__ == "__main__":
     parser = argparse.ArgumentParser()
 
-    ckpt_path = 'checkpoints/checkpoint_latest.pth'
+    ckpt_path = 'checkpoints/checkpoint_latest_DSFP.pth'
     output_path = 'outputs/txt2img'
     os.makedirs(output_path, exist_ok=True)
     demo(ckpt_path, output_path)
