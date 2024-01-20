@@ -6,7 +6,7 @@ import numpy as np
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from scripts.demo.turbo import *
 from utils import plot_mask
-from seg_module_old import Segmodule
+from seg_module import Segmodule
 
 
 def demo(ckpt_path, output_path):
@@ -65,8 +65,8 @@ def demo(ckpt_path, output_path):
         ),
     )
     sampler.n_sample_steps = n_steps
-    default_prompt = "A cinematic shot of a baby pikachu wearing an intricate italian priest robe."
-    default_category = "pikachu"
+    default_prompt = "A cinematic shot of a baby racoon wearing an intricate italian priest robe."
+    default_category = "racoon"
     prompt = st_keyup("Prompt for diffusion", value=default_prompt, debounce=300, key="interactive_text")
     category = st_keyup("Query category", value=default_category, debounce=30, key="text")
     
