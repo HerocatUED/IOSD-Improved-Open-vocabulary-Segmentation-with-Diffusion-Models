@@ -15,7 +15,7 @@ so as to easy extension.
 Put these models under `checkpoints` folder:
 1. [diffusion model(sd_xl_turbo_1.0_fp16.safetensors)](https://huggingface.co/stabilityai/sdxl-turbo/tree/main)
 2. [detection model](https://drive.google.com/file/d/1JbJ7tWB15DzCB9pfLKnUHglckumOdUio/view)
-3. [segmentation module]()
+3. [segmentation module](https://pan.baidu.com/s/1JoL9KgOTPL-lwk_FUeK-pQ?pwd=t5go)
 
 ## Demo
 After you have your seg_model, you can run a real-time web UI with following command:
