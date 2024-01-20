@@ -2,25 +2,13 @@
 Project of Multimodal Learning (PKU 2023 Autumn)
 
 This project is based on [Grounded-Diffusion](https://github.com/Lipurple/Grounded-Diffusion), 
-but we modified the whole code base because the original codes are too ugly and hard to use.
-We only remained the idea and reconstructed the whole project based on official stable diffusion code base, 
+but we modified the whole code base because the original codes are hard to use.
+We remained the idea and reconstructed the whole project based on official stable diffusion code base, 
 so as to easy extension.
-
-TODO List：
-- [x] Reproduce and Clean up the code base
-- [x] Try up-to-date stable diffusion models(we modified the whole code base)
-- [x] Explore frozen word embeddings
-- [x] Modify fusion module with advanced techniques
-- [x] Filter: remove imgs those mmdet can't segment or gets low confidence
-- [x] Build prompts with negative class
-- [x] Faster training and inference speed
-- [x] Optional: web UI inference demo
-- [ ] Optional: Try segment a given image rather than segment generated images. *But SDXL-Turbo Model is a txt2img model* 
-- [ ] Optional: Try Stable Video Diffusion via video segmentation
 
 ## Requirements
 1. Install [pytorch](https://pytorch.org/) (we use 2.1.1 with cuda 11.8)
-2. Install requirements, see instructions under requirements folder
+2. Install requirements, see instructions under `requirements\`
 3. Make sure you have access to hugging face (If not, just put ```HF_ENDPOINT=https://hf-mirror.com``` before all commands bellow)
 
 ## Model Zoo
