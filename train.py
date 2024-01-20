@@ -28,9 +28,6 @@ def main(args):
     seed_everything(args.seed)
 
     class_train, class_test, class_coco = load_classes(args.class_split)
-    # class_train = list(class_coco.keys())
-    # print(class_train)
-    # print(len(class_train))
     
     device = torch.device("cuda") if torch.cuda.is_available() else torch.device("cpu")
     config_file = 'src/mmdetection/configs/swin/mask_rcnn_swin-s-p4-w7_fpn_fp16_ms-crop-3x_coco.py'
@@ -63,12 +60,12 @@ def main(args):
     writer = SummaryWriter(log_dir=os.path.join(args.exp_dir, 'logs'))
     
     learning_rate = 2e-5
-    total_iter = 7000
+    total_iter = 13000
     g_optim = optim.Adam(
         [{"params": seg_module.parameters()},],
         lr=learning_rate
     )
-    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=5000, gamma=0.5)
+    lr_scheduler = torch.optim.lr_scheduler.StepLR(g_optim, step_size=6000, gamma=0.5)
     
     class_embedding_dic = {}
     for class_name in class_train:
@@ -88,15 +85,16 @@ def main(args):
     for j in tqdm(range(1, total_iter+1)):
         lr_scheduler.step()
         if not args.from_file:
-            trainclass = class_train[random.randint(0, len(class_train)-1)]
-            prompt = "A modern photograph of a " + trainclass
-        # if not args.from_file:
-        #     trainclass = class_train[random.randint(0, len(class_train)-1)]
-        #     otherclass = class_train[random.randint(0, len(class_train)-1)]
-        #     while otherclass == trainclass: otherclass = class_train[random.randint(0, len(class_train)-1)]
-        #     rand = random.random()
-        #     if rand >= 0.5: prompt = f"A cinematic shot of a {trainclass} and a {otherclass}, naturally and realistically."
-        #     else: prompt = f"A cinematic shot of a {otherclass} and a {trainclass}, naturally and realistically."
+            if not args.use_prompt_eng:
+                trainclass = class_train[random.randint(0, len(class_train)-1)]
+                prompt = "A modern photograph of a " + trainclass
+            else:
+                trainclass = class_train[random.randint(0, len(class_train)-1)]
+                otherclass = class_train[random.randint(0, len(class_train)-1)]
+                while otherclass == trainclass: otherclass = class_train[random.randint(0, len(class_train)-1)]
+                rand = random.random()
+                if rand >= 0.5: prompt = f"A cinematic shot of a {trainclass} and a {otherclass}, naturally and realistically."
+                else: prompt = f"A cinematic shot of a {otherclass} and a {trainclass}, naturally and realistically."
         else:
             print(f"reading prompts from {args.from_file}")
             with open(args.from_file, "r") as f:
@@ -184,6 +182,12 @@ if __name__ == "__main__":
         "--from-file",
         type=str,
         help="if specified, load prompts from this file",
+    )
+    parser.add_argument(
+        "--use_prompt_eng",
+        type=bool,
+        help="if specified, use promt engneering",
+        default=False
     )
     parser.add_argument(
         "--H",
