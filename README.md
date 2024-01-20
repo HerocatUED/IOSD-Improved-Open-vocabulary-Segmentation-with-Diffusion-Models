@@ -13,7 +13,6 @@ TODO List：
 - [x] Modify fusion module with advanced techniques
 - [x] Check training classes, remove those mmdet can't segment or low confidence
 - [x] Build prompts, not always "a photography of ..." -> "A scene containing a"
-- [x] lr schedule
 - [x] Optional: web UI inference demo
 - [ ] Optional: Try segment a given image rather than segment generated images. *But SDXL-Turbo Model is a txt2img model* 
 - [ ] Optional: Try Stable Video Diffusion via video segmentation
