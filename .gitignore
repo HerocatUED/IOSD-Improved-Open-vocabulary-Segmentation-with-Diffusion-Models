@@ -1,7 +1,11 @@
+# vscode
 **/__pycache__
 .vscode
-checkpoint
-src
-openai
-outputs
-tmp
+
+# extensions
+*.egg-info
+*.py[cod]
+
+# directories
+/checkpoints
+/outputs
