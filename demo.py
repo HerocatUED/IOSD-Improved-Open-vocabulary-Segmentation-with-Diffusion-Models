@@ -6,7 +6,7 @@ import numpy as np
 from sgm.modules.diffusionmodules.openaimodel import get_feature_dic
 from scripts.demo.turbo import *
 from utils import plot_mask
-from seg_module_old import Segmodule
+from seg_module import Segmodule
 
 
 def demo(ckpt_path, output_path):
