@@ -23,6 +23,7 @@ After you have your seg_model, you can run a real-time web UI with following com
 ```streamlit run demo.py```
 ![image](demo.png)
 Note: load models will take a while when first running the project.
+
 Cite: [Stablility-AI:generative-models](https://github.com/Stability-AI/generative-models)
 ## Train
 Replace num with class split id, 1-3 belongs to PASCAL, 4-6 belongs to COCO.
