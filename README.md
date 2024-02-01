@@ -1,4 +1,4 @@
-# Multimodal-Learning
+# IOSD: Improved Open-vocabulary Segmentation with Diffusion Models
 Project of Multimodal Learning (PKU 2023 Autumn)
 
 This project is based on [Grounded-Diffusion](https://github.com/Lipurple/Grounded-Diffusion), 
