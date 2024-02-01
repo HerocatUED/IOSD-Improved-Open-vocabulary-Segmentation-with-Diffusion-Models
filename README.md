@@ -21,7 +21,7 @@ Put these models under `checkpoints` folder:
 After you have your seg_model, you can run a real-time web UI with following command:
 
 ```streamlit run demo.py```
-
+![image](demo.png)
 Note: load models will take a while when first running the project.
 
 ## Train
