@@ -22,7 +22,9 @@ After you have your seg_model, you can run a real-time web UI with following com
 
 ```streamlit run demo.py```
 ![image](demo.png)
-Note: load models will take a while when first running the project.
+Note: 
+- The first time you start the UI demo, it need to download a pre-trained CLIP model from Hugging Face as well as load the models. It will take up to ten minutes.
+- Please enter the prompt at once for each image, if you enter continuously, the interactive UI may crash because of too frequent inputs.
 
 Cite: [Stablility-AI:generative-models](https://github.com/Stability-AI/generative-models)
 ## Train
