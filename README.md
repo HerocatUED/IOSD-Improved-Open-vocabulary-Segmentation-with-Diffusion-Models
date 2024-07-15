@@ -4,7 +4,7 @@ Project of Multimodal Learning (PKU 2023 Autumn)
 This project is based on [Grounded-Diffusion](https://github.com/Lipurple/Grounded-Diffusion), 
 but we modified the whole code base because the original codes are hard to use.
 We remained the idea and reconstructed the whole project based on official stable diffusion code base, 
-so as to easy extension.
+so as to easy extension. [Technical Report](https://github.com/HerocatUED/Improved-Open-vocabulary-Segmentation-with-Diffusion-Models/blob/master/Improved%20Open-vocabulary%20Segmentation%20with%20Diffusion%20Models.pdf)
 
 ## Requirements
 1. Install [pytorch](https://pytorch.org/) (we use 2.1.1 with cuda 11.8)
